@@ -5,41 +5,56 @@ from collections import deque
 import random
 
 class DQN():
-    def __init__(self, input_shape, output_shape, discount=0.99, update_target_every=10, memory_size=2000):
+    # setting input and output shapes to None just in case you want to use the class only for loading the model
+    def __init__(self, input_shape=None, output_shape=None, discount=0.99, memory_size=10000, sample_size=64, update_target_every=50):
         self.input_shape = input_shape # choosing the input shape
         self.output_shape = output_shape # choosing the output shape
         self.discount = discount
-        self.policy_net = self.create_model() # create the policy neural network
-        self.target_net = self.policy_net # clone the policy neural network to target neural network
+        if input_shape and output_shape:
+            self.policy_net = self.create_model() # create the policy neural network
+            self.target_net = self.policy_net # clone the policy neural network to target neural network
         self.memory = deque(maxlen=memory_size)
+        self.sample_size = sample_size
         self.target_counter = 0
         self.update_target_every = update_target_every
 
     def create_model(self):
         model = Sequential()
-        model.add(Dense(20, input_shape=self.input_shape, activation="relu")) # fully connected layer
-        model.add(Dense(20, activation="relu")) # fully connected layer
+        model.add(Dense(64, input_shape=self.input_shape, activation="relu")) # fully connected layer
+        model.add(Dense(64, activation="relu")) # fully connected layer
         model.add(Dense(self.output_shape, activation="softmax")) # output layer
         model.compile(loss="mse", optimizer="adam", metrics=["accuracy"]) # choosing the loss and the optimizer
         return model # return the neural network
 
     def play(self, state):
         prediction = self.policy_net.predict(state) # take an action according to the policy net
-        return np.argmax(prediction)
+        return np.argmax(prediction) # return the max index
 
     def train(self, sample):
+    
+        current_states = np.array([i[0] for i in sample])
+        current_qs = self.policy_net.predict(current_states)
+
+        next_states = np.array([i[3] for i in sample])
+        next_qs = self.target_net.predict(next_states)
+
+        x = []
+        y = []
+
         for index, (current_state, action, reward, next_state, done) in enumerate(sample):
-            current_q = self.policy_net.predict(current_state)
-            next_q = self.target_net.predict(next_state)
 
             if not done:
-                target = reward + self.discount * np.max(next_q)
+                target = reward + self.discount * np.max(next_qs)
             else:
                 target = reward
-            
-            current_q[0][action] = target
 
-            self.policy_net.fit(current_state, current_q, epochs=1, verbose=0, shuffle=False)
+            current_q = current_qs[index]
+            current_q[action] = target
+
+            x.append(current_state)
+            y.append(current_q)
+
+        self.policy_net.fit(np.array(x), np.array(y), verbose=0, batch_size=self.sample_size, shuffle=False)
 
         self.target_counter += 1 # updating the counter
 
@@ -48,16 +63,17 @@ class DQN():
             self.target_net.set_weights(self.policy_net.get_weights())
 
     def update(self, experience):
-        self.memory.append(experience)
-    
-    def create_sample(self, sample_size):
-        if len(self.memory) < sample_size:
-            return
+        self.memory.append(experience) # append experience to memory
+
+    def create_sample(self):
+        # return a random sample if we have enough experience in memory
+        if len(self.memory) < self.sample_size:
+            return None # return none
         else:
-            return random.sample(self.memory, sample_size)
+            return random.sample(self.memory, self.sample_size) # return a random sample from memory
 
     # save the model
-    def save(self, model_name, save_target_net=False, verbose=True):
+    def save(self, model_name, save_target_net=True, verbose=False):
         self.policy_net.save(f"models/{model_name}_policy.h5") # save the policy net
         if verbose:
             print(f"policy net saved as {model_name}_policy.h5")
@@ -66,14 +82,16 @@ class DQN():
             self.target_net.save(f"models/{model_name}_target.h5") # save the target net
             if verbose:
                 print(f"target net saved as {model_name}_target.h5")
-    
+
     # load the model
-    def load(self, model_name, load_target_net=False, verbose=True):
+    def load(self, model_name, load_target_net=False, verbose=False):
         self.policy_net = load_model(f"models/{model_name}_policy.h5") # load the policy net
+        # if verbose true print
         if verbose:
             print(f"{model_name}_policy.h5 loaded")
         # if True load the target net too
         if load_target_net:
             self.target_net = load_model(f"models/{model_name}_target.h5") # load the target net
+            # if verbose true print
             if verbose:
                 print(f"{model_name}_target.h5 loaded")

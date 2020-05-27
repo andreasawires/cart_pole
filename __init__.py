@@ -30,7 +30,7 @@ def train_the_player():
             player.update((state.reshape(1, 4), action, reward, next_state.reshape(1, 4), done)) # updating player memory
             sample = player.create_sample(32) # create a random sample from the memory
 
-            # if we have >64 data in memory we can create a sample
+            # if we have enough data in memory we can create a sample
             if sample:
                 player.train(sample)
 
@@ -45,7 +45,7 @@ def train_the_player():
             player.save(f"{MODEL_NAME}_{epoch}", save_target_net=False, verbose=False) # save the model just policy without print something
 
 def playing(model_name, load_target_net=False):
-    player.load(model_name, load_target_net=False) # load the model
+    player.load(model_name, load_target_net=load_target_net) # load the model
     state = env.reset() # reset the state
     for t in range(200):
         env.render() # render the game
