@@ -13,7 +13,7 @@ if __name__ == "__main__":
     EPOCHS = 500
     decay_exp = 0.01
     exploration_rate = 1
-    MODEL_NAME = "alessia_gay"
+    MODEL_NAME = "test1"
     scores = []
 
     for epoch in range(EPOCHS):
@@ -47,4 +47,4 @@ if __name__ == "__main__":
 
         scores.append(score) # appending score to scores list
         avg_score = np.mean(scores[max(0, epoch-100):(epoch+1)]) # calcolate avg score
-        print("epoch ", epoch, "score %.2f" % score, "average score %.2f" % avg_score) # printing epoch, score and average score
+        print("epoch", epoch, "score %.2f" % score, "average score %.2f" % avg_score) # printing epoch, score and average score
