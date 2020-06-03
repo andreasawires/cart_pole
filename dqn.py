@@ -1,18 +1,22 @@
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Dense
+from tensorflow.keras.optimizers import Adam
 import numpy as np
 from collections import deque
 import random
 
 class DQN():
     # setting input and output shapes to None just in case you want to use the class only for loading the model
-    def __init__(self, input_shape=None, output_shape=None, discount=0.99, memory_size=10000, sample_size=64, update_target_every=50):
+    def __init__(self, input_shape=None, output_shape=None, discount=0.99, learning_rate=0.001, memory_size=10000, sample_size=64, update_target_every=50):
         self.input_shape = input_shape # choosing the input shape
         self.output_shape = output_shape # choosing the output shape
         self.discount = discount
+        self.learning_rate = learning_rate
+
         if input_shape and output_shape:
             self.policy_net = self.create_model() # create the policy neural network
             self.target_net = self.policy_net # clone the policy neural network to target neural network
+
         self.memory = deque(maxlen=memory_size)
         self.sample_size = sample_size
         self.target_counter = 0
@@ -20,10 +24,10 @@ class DQN():
 
     def create_model(self):
         model = Sequential()
-        model.add(Dense(64, input_shape=self.input_shape, activation="relu")) # fully connected layer
-        model.add(Dense(64, activation="relu")) # fully connected layer
+        model.add(Dense(24, input_shape=self.input_shape, activation="relu")) # fully connected layer
+        model.add(Dense(100, activation="relu")) # fully connected layer
         model.add(Dense(self.output_shape, activation="softmax")) # output layer
-        model.compile(loss="mse", optimizer="adam", metrics=["accuracy"]) # choosing the loss and the optimizer
+        model.compile(loss="mse", optimizer=Adam(lr=self.learning_rate), metrics=["accuracy"]) # choosing the loss and the optimizer
         return model # return the neural network
 
     def play(self, state):
@@ -32,11 +36,11 @@ class DQN():
 
     def train(self, sample):
     
-        current_states = np.array([i[0] for i in sample])
-        current_qs = self.policy_net.predict(current_states)
+        current_states = np.array([i[0] for i in sample]) # every state in sample
+        current_qs = self.policy_net.predict(current_states) # calcolate the q for every state in the sample using policy net
 
-        next_states = np.array([i[3] for i in sample])
-        next_qs = self.target_net.predict(next_states)
+        next_states = np.array([i[3] for i in sample]) # every next state in sample
+        next_qs = self.target_net.predict(next_states) # calcolate the q for every next state in the sample using target net
 
         x = []
         y = []
@@ -44,15 +48,14 @@ class DQN():
         for index, (current_state, action, reward, next_state, done) in enumerate(sample):
 
             if not done:
-                target = reward + self.discount * np.max(next_qs)
+                target = reward + self.discount * np.max(next_qs[index]) # formula to calcolate the target
             else:
-                target = reward
+                target = reward # if this is last frame (i.e. done=True)
 
-            current_q = current_qs[index]
-            current_q[action] = target
+            current_qs[index][action] = target # update Q(s,a) with the target
 
-            x.append(current_state)
-            y.append(current_q)
+            x.append(current_state) # append states to x
+            y.append(current_qs[index]) # append qs to y
 
         self.policy_net.fit(np.array(x), np.array(y), verbose=0, batch_size=self.sample_size, shuffle=False)
 
