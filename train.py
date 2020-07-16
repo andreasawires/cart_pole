@@ -9,27 +9,34 @@ if __name__ == "__main__":
     EPOCHS = 400
     learning_rate = 0.001 # learning rate
     discount = 0.97 # discount (aka gamma) used in the formula to calculate target value
-    update_target_every = 100 # copy weight to target net every x amount of epochs
+    update_target_every = 200 # copy weight to target net every x amount of epochs
 
     # hyper parameters for exploration vs exploitation 
     decay_exp = 0.001
     exploration_rate = 1
-    min_exp_rate = 0.10
+    min_exp_rate = 0.30
 
-    MODEL_NAME = "test4"
+    MODEL_NAME = "test"
     scores = []
     best_score = 0
 
     env = gym.make("CartPole-v0") # initialize the enviroment
-    env = gym.wrappers.Monitor(env, "recording", video_callable=lambda episode_id: True, force=True) # recording video of the agent for every episode
-    player = DQN(input_shape=env.observation_space.shape, output_shape=env.action_space.n, discount=discount,
-                learning_rate=learning_rate, update_target_every=update_target_every) # initialize the DQN
+    # env = gym.wrappers.Monitor(env, "recording", video_callable=lambda episode_id: True, force=True) # recording video of the agent for every episode
+    player = DQN(
+                    input_shape=env.observation_space.shape,
+                    output_shape=env.action_space.n,
+                    discount=discount,
+                    learning_rate=learning_rate,
+                    sample_size=32,
+                    update_target_every=update_target_every
+                ) # initialize the DQN
+
     # player.load(MODEL_NAME, load_target_net=True)
 
     writer = SummaryWriter(f"runs/{MODEL_NAME}") # initialize writer for the graph
     writer.add_hparams({"learning rate": learning_rate, "discount": discount, "target update": update_target_every}, {}, MODEL_NAME) # adding hyper parameters
 
-    for epoch in tqdm(range(EPOCHS), unit="epoch"):
+    for epoch in range(EPOCHS):
         score = 0
         state = env.reset()
         done = False
@@ -70,7 +77,7 @@ if __name__ == "__main__":
             player.save(MODEL_NAME) # save the model both policy and target net every time it beats the score 
 
         # printing epoch, type of action taken, score, average score, best score
-        # print("epoch: ", epoch, ", ", action_taken, ", score: %.2f" % score, ", average score: %.2f" % avg_score, 
-        #     ", best score: %.2f" % best_score, sep="") 
+        print("epoch: ", epoch, ", ", action_taken, ", score: %.2f" % score, ", average score: %.2f" % avg_score, 
+            ", best score: %.2f" % best_score, sep="") 
 
     player.save(MODEL_NAME) # save the model both policy and target

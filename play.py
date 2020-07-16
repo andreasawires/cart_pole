@@ -7,6 +7,7 @@ if __name__ == "__main__":
     player.load(MODEL_NAME)
 
     env = gym.make("CartPole-v0")
+    env = gym.wrappers.Monitor(env, "recording/play", force=True, video_callable=lambda episode_id: True, force=True) # recording video of the agent for every episode
     state = env.reset()
     score = 0
     for t in range(500):
