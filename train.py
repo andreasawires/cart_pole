@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 if __name__ == "__main__":
 
-    EPOCHS = 400
+    EPOCHS = 200
     learning_rate = 0.001 # learning rate
     discount = 0.97 # discount (aka gamma) used in the formula to calculate target value
     update_target_every = 200 # copy weight to target net every x amount of epochs
@@ -14,14 +14,14 @@ if __name__ == "__main__":
     # hyper parameters for exploration vs exploitation 
     decay_exp = 0.001
     exploration_rate = 1
-    min_exp_rate = 0.30
+    min_exp_rate = 0.01
 
     MODEL_NAME = "test"
     scores = []
     best_score = 0
 
     env = gym.make("CartPole-v0") # initialize the enviroment
-    # env = gym.wrappers.Monitor(env, "recording", video_callable=lambda episode_id: True, force=True) # recording video of the agent for every episode
+    env = gym.wrappers.Monitor(env, "recording", video_callable=lambda episode_id: True, force=True) # recording video of the agent for every episode
     player = DQN(
                     input_shape=env.observation_space.shape,
                     output_shape=env.action_space.n,

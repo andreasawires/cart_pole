@@ -24,9 +24,9 @@ class DQN():
 
     def create_model(self):
         model = Sequential()
-        model.add(Dense(24, input_shape=self.input_shape, activation="relu")) # fully connected layer
-        model.add(Dense(100, activation="relu")) # fully connected layer
-        model.add(Dense(self.output_shape, activation="softmax")) # output layer
+        model.add(Dense(1024, input_shape=self.input_shape, activation="relu")) # fully connected layer
+        model.add(Dense(256, activation="relu")) # fully connected layer
+        model.add(Dense(self.output_shape)) # output layer
         model.compile(loss="mse", optimizer=Adam(lr=self.learning_rate)) # choosing the loss and the optimizer
         return model # return the neural network
 
@@ -35,22 +35,30 @@ class DQN():
         return np.argmax(prediction) # return the max index
 
     def train(self, sample):
-    
+        
+        index = np.arange(self.sample_size)
+
         states = np.array([i[0] for i in sample]) # every state in sample
+        actions = np.array([i[1] for i in sample]) # every action in sample
+        rewards = np.array([i[2] for i in sample]) # every reward in sample
         next_states = np.array([i[3] for i in sample]) # every next state in sample
+        done = np.array([1 - int(i[4]) for i in sample]) # every done in sample
 
         next_qs = self.target_net.predict(next_states) # calcolate the q for every next state in the sample using target net
         next_qs_eval = self.policy_net.predict(next_states) # calcolate the q for every next state in the sample using policy net
         current_qs_pred = self.policy_net.predict(states) # calcolate the q for every state in the sample using policy net
 
-        for index, (state, action, reward, next_state, done) in enumerate(sample):
+        current_qs_pred[index, actions] = rewards + self.discount * next_qs[index, np.argmax(next_qs_eval, axis=1)] * done
 
-            if not done:
-                target = reward + self.discount * next_qs[index, np.argmax(next_qs_eval[index])] # formula to calcolate the target
-            else:
-                target = reward # if this is last frame (i.e. done=True)
+    
+        # for index, (state, action, reward, next_state, done) in enumerate(sample):
 
-            current_qs_pred[index, action] = target # update Q(s,a) with the target
+        #     if not done:
+        #         target = reward + self.discount * next_qs[index, np.argmax(next_qs_eval[index])] # formula to calcolate the target
+        #     else:
+        #         target = reward # if this is last frame (i.e. done=True)
+
+        #     current_qs_pred[index, action] = target # update Q(s,a) with the target
 
         self.policy_net.fit(states, current_qs_pred, verbose=0, batch_size=self.sample_size, shuffle=False)
 
