@@ -50,16 +50,6 @@ class DQN():
 
         current_qs_pred[index, actions] = rewards + self.discount * next_qs[index, np.argmax(next_qs_eval, axis=1)] * done
 
-    
-        # for index, (state, action, reward, next_state, done) in enumerate(sample):
-
-        #     if not done:
-        #         target = reward + self.discount * next_qs[index, np.argmax(next_qs_eval[index])] # formula to calcolate the target
-        #     else:
-        #         target = reward # if this is last frame (i.e. done=True)
-
-        #     current_qs_pred[index, action] = target # update Q(s,a) with the target
-
         self.policy_net.fit(states, current_qs_pred, verbose=0, batch_size=self.sample_size, shuffle=False)
 
         self.target_counter += 1 # updating the counter
